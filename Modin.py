@@ -115,22 +115,9 @@ def verify_results(df, lazy_df, modin_df):
     # Modin operation: Apply filter, groupby, and aggregation
     result_modin = modin_df[modin_df['a'] > 10].groupby('b').mean()
 
-    # Print both results for comparison
-    print("\nStandard result:")
-    print(result_standard.head())
-    
-    print("\nLazy result:")
-    print(result_lazy.head())
-
-    print("\nModin result:")
-    print(result_modin.head())
-
     # Reset the index and align columns before comparison
     result_standard = result_standard.reset_index(drop=True)
-    
-    # Convert Modin DataFrame to pandas DataFrame for compatibility with pandas methods
     result_modin = pd.DataFrame(result_modin)  # Convert Modin to pandas
-
     result_lazy = result_lazy.reset_index(drop=True)
 
     # Align column names for comparison (if necessary)
@@ -173,7 +160,7 @@ def generate_large_data(size=1000000):
     })
 
 # 5. **Plot Results Function**
-def plot_results(standard_times, lazy_times, modin_times):
+def plot_results(standard_times, lazy_times, modin_times, title="Execution Time Comparison"):
     """Plot the execution times for standard, lazy, and Modin evaluation.""" 
     plt.figure(figsize=(10, 6))
     plt.plot(standard_times, label="Standard pandas", marker='o', linestyle='--')
@@ -181,9 +168,38 @@ def plot_results(standard_times, lazy_times, modin_times):
     plt.plot(modin_times, label="Modin", marker='s', linestyle=':')
     plt.xlabel('Run #')
     plt.ylabel('Execution Time (seconds)')
-    plt.title('Execution Time Comparison: Standard vs Lazy vs Modin Evaluation')
+    plt.title(title)
     plt.legend()
     plt.grid(True)
+    plt.show()
+
+def plot_comparison(standard_results, lazy_results, modin_results):
+    """Visualize the comparisons between standard, lazy, and Modin operations."""
+    plt.figure(figsize=(12, 8))
+
+    # Results comparison in subplots
+    plt.subplot(3, 1, 1)
+    plt.plot(standard_results, label="Standard pandas", color='blue', marker='o', linestyle='--')
+    plt.title("Standard Pandas Execution Time")
+    plt.xlabel("Run #")
+    plt.ylabel("Time (s)")
+    plt.grid(True)
+
+    plt.subplot(3, 1, 2)
+    plt.plot(lazy_results, label="Lazy Evaluation", color='orange', marker='x', linestyle='-.')
+    plt.title("Lazy Evaluation Execution Time")
+    plt.xlabel("Run #")
+    plt.ylabel("Time (s)")
+    plt.grid(True)
+
+    plt.subplot(3, 1, 3)
+    plt.plot(modin_results, label="Modin", color='green', marker='s', linestyle=':')
+    plt.title("Modin Execution Time")
+    plt.xlabel("Run #")
+    plt.ylabel("Time (s)")
+    plt.grid(True)
+
+    plt.tight_layout()
     plt.show()
 
 # 6. **Main Code for Running Benchmarks**
@@ -200,42 +216,34 @@ def main():
     num_runs = 25
 
     # Benchmark the standard pandas operation (first run)
-    print("Initial runs (without caching):")
-
     standard_times_initial = benchmark.benchmark_standard(num_runs=num_runs)
     avg_standard_initial = np.mean(standard_times_initial)
-    print(f"Standard pandas average execution time (initial): {avg_standard_initial:.4f} seconds")
 
     # Benchmark the lazy operation (first run, no caching)
     lazy_times_initial = benchmark.benchmark_lazy(num_runs=num_runs)
     avg_lazy_initial = np.mean(lazy_times_initial)
-    print(f"Lazy evaluation average execution time (initial): {avg_lazy_initial:.4f} seconds")
 
     # Benchmark the Modin operation (first run, no caching)
     modin_times_initial = benchmark.benchmark_modin(num_runs=num_runs)
     avg_modin_initial = np.mean(modin_times_initial)
-    print(f"Modin average execution time (initial): {avg_modin_initial:.4f} seconds")
 
     # Perform subsequent runs with caching
-    print("\nSubsequent runs with caching (after first run):")
-
     standard_times_subsequent = benchmark.benchmark_standard(num_runs=num_runs)
-    avg_standard_subsequent = np.mean(standard_times_subsequent)
-    print(f"Standard pandas average execution time (subsequent): {avg_standard_subsequent:.4f} seconds")
-
     lazy_times_subsequent = benchmark.benchmark_lazy(num_runs=num_runs)
-    avg_lazy_subsequent = np.mean(lazy_times_subsequent)
-    print(f"Lazy evaluation average execution time (subsequent): {avg_lazy_subsequent:.4f} seconds")
-
     modin_times_subsequent = benchmark.benchmark_modin(num_runs=num_runs)
-    avg_modin_subsequent = np.mean(modin_times_subsequent)
-    print(f"Modin average execution time (subsequent): {avg_modin_subsequent:.4f} seconds")
 
-    # Visualize the results
-    plot_results(standard_times_initial, lazy_times_initial, modin_times_initial)
+    # Plot initial comparison
+    plot_results(standard_times_initial, lazy_times_initial, modin_times_initial,
+                 title="Initial Execution Time Comparison")
 
-    # Compare results for correctness
-    print("\nVerifying results:")
+    # Plot subsequent comparison
+    plot_results(standard_times_subsequent, lazy_times_subsequent, modin_times_subsequent,
+                 title="Subsequent Execution Time Comparison (with caching)")
+
+    # Visual comparison of all the methods
+    plot_comparison(standard_times_initial, lazy_times_initial, modin_times_initial)
+
+    # Verify results for correctness
     verify_results(df, lazy_df, modin_df)
 
 if __name__ == "__main__":
